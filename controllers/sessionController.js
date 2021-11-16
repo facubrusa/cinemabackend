@@ -1,12 +1,16 @@
 const db = require('../config/db');
 
 exports.getSessions = async (req, res) => {
-    const { date } = req.query;
-
+    const { date, idMovie } = req.query;
     try {
+        const sessions = await getSessions(date, idMovie);
+        if(idMovie) {
+            res.status(200).json({ sessions });
+            return;
+        }
+        
         const movies = await getMovies(date);
-        const sessions = await getSessions(date);
-        res.status(200).json({movies, sessions});
+        res.status(200).json({sessions, movies });
     } catch (error) {
         console.log(error);
     }
@@ -32,7 +36,7 @@ const getMovies = date => {
                         p.cartelera = TRUE AND
                         f.PublicaWeb = 1
                     GROUP BY
-                        p.codigo`;
+                        p.codigo;`;
 
     return new Promise((resolve, reject) => {
         db.query(query, (error, results) => {
@@ -41,7 +45,9 @@ const getMovies = date => {
     });
 }
 
-const getSessions = date => {
+const getSessions = (date, idMovie) => {
+
+    let movieFilter = (idMovie) ? `AND f.codigoPelicula = ${idMovie}` : '';
 
     const query = `SELECT
                         f._id AS idSession,
@@ -53,7 +59,8 @@ const getSessions = date => {
                         tbl_funciones AS f 
                     WHERE			
                         f.fecha = '${date}' AND
-                        f.activo = TRUE 		 
+                        f.activo = TRUE 
+                        ${movieFilter}	 
                     GROUP BY
                         f._id
                     ORDER BY
